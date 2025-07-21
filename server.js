@@ -1,49 +1,46 @@
 const express = require('express');
 const cors = require('cors');
-const app = express();
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
+
+// Import your routes
 const employeesRoutes = require('./routes/employees.routes');
 const departmentsRoutes = require('./routes/departments.routes');
 const productsRoutes = require('./routes/products.routes');
 
+const app = express();
 
-const uri = 'mongodb://0.0.0.0:27017'; // MongoDB connection URI
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true },
-  (err, client) => {
-    if (err) {
-      console.error('Database connection failed:', err);
-      return;
-    }
-    else {
-      console.log('✅ Successfully connected to MongoDB');
-      const db = client.db('companyDB');        // ← select your DB
-      const app = express();
+// Mount API routes
+app.use('/api', employeesRoutes);
+app.use('/api', departmentsRoutes);
+app.use('/api', productsRoutes);
 
-      // Middleware
-      app.use(cors());
-      app.use(express.json());
-      app.use(express.urlencoded({ extended: false }));
-      
-      app.use((req, res, next) => {
-        req.db = db;
-        next();
-      });
+// Fallback for unmatched routes
+app.use((req, res) => {
+  res.status(404).send({ message: 'Not found...' });
+});
 
+// Connect to MongoDB using Mongoose
+mongoose.connect('mongodb://0.0.0.0:27017/companyDB', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-      // your existing routes (they’ll use `db` internally)
-      app.use('/api', employeesRoutes);
-      app.use('/api', departmentsRoutes);
-      app.use('/api', productsRoutes);
+const db = mongoose.connection;
 
-      // 404 Handler
-      app.use((req, res) => res.status(404).send({ message: 'Not found...' }));
+// Success and error handling for connection
+db.once('open', () => {
+  console.log('✅ Connected to the database');
+});
 
+db.on('error', (err) => {
+  console.error('❌ Database connection error: ' + err);
+});
 
-      // Start the server
-      app.listen(8000, () => {
-        console.log('🚀 Server listening on port 8000');
-      });
-    }
-  });
-
+// Start the server
+app.listen(8000, () => {
+  console.log('🚀 Server is running on port: 8000');
+});

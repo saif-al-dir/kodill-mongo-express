@@ -1,71 +1,82 @@
 const express = require('express');
-const { ObjectId } = require('mongodb');
 const router = express.Router();
+const Product = require('../models/products.model'); // Import the Product model
 
 // GET all products
-router.get('/products', (req, res) => {
-  req.db.collection('products')
-    .find()
-    .toArray()
-    .then(data => res.json(data))
-    .catch(err => res.status(500).json({ message: err }));
+router.get('/products', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // GET a random product
-router.get('/products/random', (req, res) => {
-  req.db.collection('products')
-    .aggregate([{ $sample: { size: 1 } }])
-    .toArray()
-    .then(data => res.json(data[0]))
-    .catch(err => res.status(500).json({ message: err }));
+router.get('/products/random', async (req, res) => {
+  try {
+    const count = await Product.countDocuments();
+    const rand = Math.floor(Math.random() * count);
+    const product = await Product.findOne().skip(rand);
+    if (!product) res.status(404).json({ message: 'Product not found' });
+    else res.json(product);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // GET a product by ID
-router.get('/products/:id', (req, res) => {
-  req.db.collection('products')
-    .findOne({ _id: ObjectId(req.params.id) })
-    .then(data => {
-      if (!data) res.status(404).json({ message: 'Product not found' });
-      else res.json(data);
-    })
-    .catch(err => res.status(500).json({ message: err }));
+router.get('/products/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) res.status(404).json({ message: 'Product not found' });
+    else res.json(product);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // POST new product
-router.post('/products', (req, res) => {
+router.post('/products', async (req, res) => {
   const { name, client } = req.body;
 
-  req.db.collection('products')
-    .insertOne({ name, client })
-    .then(() => res.status(201).json({ message: 'Product added' }))
-    .catch(err => res.status(500).json({ message: err }));
+  try {
+    const newProduct = new Product({ name, client });
+    await newProduct.save();
+    res.status(201).json({ message: 'Product added' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // PUT update product
-router.put('/products/:id', (req, res) => {
+router.put('/products/:id', async (req, res) => {
   const { name, client } = req.body;
 
-  req.db.collection('products')
-    .updateOne(
-      { _id: ObjectId(req.params.id) },
-      { $set: { name, client } }
-    )
-    .then(result => {
-      if (result.matchedCount === 0) res.status(404).json({ message: 'Product not found' });
-      else res.json({ message: 'Product updated' });
-    })
-    .catch(err => res.status(500).json({ message: err }));
+  try {
+    const product = await Product.findById(req.params.id);
+    if (product) {
+      product.name = name;
+      product.client = client;
+      await product.save();
+      res.json({ message: 'Product updated' });
+    } else {
+      res.status(404).json({ message: 'Product not found' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // DELETE product
-router.delete('/products/:id', (req, res) => {
-  req.db.collection('products')
-    .deleteOne({ _id: ObjectId(req.params.id) })
-    .then(result => {
-      if (result.deletedCount === 0) res.status(404).json({ message: 'Product not found' });
-      else res.json({ message: 'Product deleted' });
-    })
-    .catch(err => res.status(500).json({ message: err }));
+router.delete('/products/:id', async (req, res) => {
+  try {
+    const result = await Product.deleteOne({ _id: req.params.id });
+    if (result.deletedCount === 0) res.status(404).json({ message: 'Product not found' });
+    else res.json({ message: 'Product deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;
