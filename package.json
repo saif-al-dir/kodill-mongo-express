@@ -8,10 +8,11 @@
     "test": "mocha --watch \"./{,!(node_modules)/**/}*.test.js\""
   },
   "dependencies": {
-    "chai": "4.2.0",
+    "chai": "^6.0.1",
+    "chai-http": "^5.1.2",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "mocha": "6.2.1",
+    "mocha": "^11.7.2",
     "mongodb": "4.17.0",
     "mongoose": "7.4.3",
     "nodemon": "^1.19.1"

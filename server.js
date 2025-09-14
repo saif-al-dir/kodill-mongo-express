@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const NODE_ENV = process.env.NODE_ENV;
+let dbUri = '';
 
 // Import your routes
 const employeesRoutes = require('./routes/employees.routes');
@@ -23,6 +25,10 @@ app.use((req, res) => {
   res.status(404).send({ message: 'Not found...' });
 });
 
+if (NODE_ENV === 'production') dbUri = 'remote-db-uri';
+else if (NODE_ENV === 'test') dbUri = 'mongodb://localhost:27017/companyDBtest';
+else dbUri = 'mongodb://localhost:27017/companyDB';
+
 // Connect to MongoDB using Mongoose
 mongoose.connect('mongodb://0.0.0.0:27017/companyDB', {
   useNewUrlParser: true,
@@ -44,3 +50,4 @@ db.on('error', (err) => {
 app.listen(8000, () => {
   console.log('🚀 Server is running on port: 8000');
 });
+
